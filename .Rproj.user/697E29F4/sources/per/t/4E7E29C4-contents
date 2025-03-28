@@ -1,0 +1,88 @@
+---
+title: "Untitled"
+format: revealjs
+editor: visual
+---
+
+## Set-up
+
+```{r}
+#| label: setup
+
+library("tidyverse")
+library("ds4ling")
+library("untidydata")
+library("plot3D")
+
+```
+
+------------------------------------------------------------------------
+
+## Look at data
+
+```{r}
+#| label: try_glimpse
+glimpse(language_diversity)
+
+```
+
+We can also look at 'head'
+
+```{r}
+#|label: head
+#|echo: true
+
+head(language_diversity)
+ld <- language_diversity |> 
+  filter(Continent == "Africa") |> 
+  pivot_wider(
+    names_from = "Measurement", 
+    values_from = "Value"
+    )
+
+```
+
+------------------------------------------------------------------------
+
+## A plot!
+
+If you label it "fig-plot", this qmd file labels the figure as Figure 1!
+
+```{r}
+#|label: fig-plot
+#|fig-dpi: 300
+#|fig-asp: 0.56
+#|out-width: "100%"
+
+ld |> 
+ggplot() + 
+  aes(x = Population, y = Langs) +
+  geom_text(aes(color = Area, label = Country)) + 
+  geom_smooth(method = lm, formula = "y ~ x")
+
+```
+
+------------------------------------------------------------------------
+
+## A model
+
+```{r}
+#|label: mrc
+
+my_mod <- lm(Langs ~ Area + Population, data = ld)
+
+summary(my_mod)
+
+```
+
+------------------------------------------------------------------------
+
+## Pretty summary
+
+```{r}
+#| label: tbl-mod
+#| tbl-cap: Hello!
+
+summary(my_mod)$coef |>
+  knitr::kable()
+```

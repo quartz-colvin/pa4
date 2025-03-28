@@ -1,0 +1,247 @@
+---
+title: "ggplot and tidy"
+author: "Quartz Colvin"
+date: "2025-02-10"
+output: html_document
+---
+
+```{r}
+#| label: load-libs
+
+library("tidyverse")
+library("untidydata")
+```
+
+```{r}
+#| label: explore
+
+glimpse(mtcars)
+head(mtcars)
+dim(mtcars)
+summary(mtcars)
+```
+
+```{r}
+#| label: some-plots
+# This is our template
+# Aes() generates the axes on the blank plot
+mtcars |>
+  ggplot() + 
+  aes(x = disp, y = mpg) + # We add a layer to the plot to generate the points!
+  geom_point()
+
+mtcars |> 
+  ggplot() + 
+  aes(x = disp, y = mpg) + 
+  geom_boxplot()
+
+
+mtcars |> 
+  ggplot() + 
+  aes(x = factor(am), y = mpg) +
+  stat_summary(
+    fun.data = mean_sdl,
+    geom = 'pointrange'
+  )
+  
+```
+
+```{r}
+#| label: simple-transformations
+# Select columns with 'select()'
+mtcars |> 
+  select(mpg, displacement = disp, am)
+
+
+# Selects columns from mpg to drat
+mtcars |> 
+  select(mpg:drat)
+
+# Select and filter 
+# Use mutate to add a new column
+mtcars |> 
+  select(mpg, displacement = disp, am) |>
+  filter(am == 1, mpg >= 23) |>
+  mutate(
+    mpg_100 = mpg + 100, 
+    z_mpg = (mpg - mean(mpg)) / sd(mpg))
+
+
+
+# 'dplyr::' before the function name forces it to choose that function name FROM THAT PACKAGE!!!! Useful if you have a naming conflict between packages
+
+# filter by cyl that equals 6
+mtcars |>
+  dplyr::filter(cyl == 6) 
+
+
+# filter by mpg values that are less than 20 and greater than 14
+mtcars |> 
+  filter(mpg < 20 & mpg > 14)
+
+# filter by mpg values that are greater than 20 OR disp values less than 200
+mtcars |>
+  filter(mpg > 20 | disp < 200)
+
+
+# ARRANGING TIME
+
+
+
+# arrange mtcars dataset based on cyl and disp
+mtcars |>
+  arrange(cyl, disp)
+
+# arrange mtcars dataset based on mpg from highest to lowest
+mtcars |>
+  arrange(desc(mpg))
+
+mtcars
+# Aggregate summarizes with 'group_by' and 'summarize'
+mtcars |> 
+  group_by(am) |>
+  summarize(
+    avg = mean(mpg),
+    sd = sd(mpg)
+    )
+```
+
+```{r}
+#| label: exercises_in_class
+
+# mutate time!!!!
+
+# select the mpg column and then create a new column called mpg_x2 that doubles every value in the dataframe
+
+mtcars |> 
+  select(mpg) |>
+  mutate(mpg_x2 = mpg * 2)
+
+
+# create a new column called mpg_c that centers the mpg data by subtracting the mean value of mpg from every value in the dataframe
+
+mtcars |>
+  select(mpg) |>
+  mutate(mpg_c = mpg - mean(mpg)) |>
+  summarize(avg = mean(mpg_c), 
+            sd = sd(mpg))
+
+# create a new column called value that applies the label 'good' to cars that get over 18 mpg and the label 'bad' to cars that get 18 mpg or less
+
+mtcars |>
+  select(mpg) |>
+  mutate(value = if_else(
+    condition = mpg > 18,
+    true = "good",
+    false = "bad"
+    )
+  )
+
+```
+
+
+WHAT ABOUT IF WE WANT A THIRD COLUMN? Use mutate() + case_when() !!!
+
+use instead of nesting if_else statements.
+
+CONDITIONS:
+1. if age of learning is less than 12 and L1 is Spanish, then heritage speaker
+2. if age of learning is less than 12 and L1 is English, then early learner 
+3. if age of learning is greater than 12, then late learner
+4. if age of learning is NA, then monolingual
+
+```{r}
+
+# create new column called 'opinion' 
+# CONDITIONS: 
+# if mpg is greater than 20, then 'good'
+# if mpg is less than 20, but greater than 15, then 'meh'
+# if mpg is less than 15, then 'bad'
+
+mtcars |>
+  select(mpg) |> 
+  mutate(
+    opinion = case_when(
+      mpg >= 20 ~ "good", 
+      mpg < 20 & mpg > 15 ~ "meh",
+      mpg <= 15 ~ "bad"
+    )
+  ) |> # now let's make a boxplot of these!
+  ggplot() + 
+  aes(x = opinion, y = mpg) + 
+  geom_boxplot()
+
+```
+
+```{r}
+#| label: tidy_data
+pre_post |>
+  separate(
+    col = id,
+    into = c("language", "num"), 
+    sep = 4
+  ) |>
+  separate( # split a column into multiple
+    col = spec, # the column that you want to split into 2 
+    into = c("group", "proficiency"), # new 2 columns
+    sep = "_" # separate at this character in the values in that column
+  )
+```
+
+
+
+
+```{r}
+#| label: pivot_examples
+
+# PIVOT LONGER 
+pre_post |>
+  pivot_longer(
+    cols = c("test1", "test2"),
+    names_to = "test",
+    values_to = "scores"
+  ) |> # PIVOT WIDER
+  pivot_wider(
+    names_from = test,
+    values_from = scores
+  ) |>
+  mutate(diff = test2 - test1)
+
+```
+
+
+```{r}
+#| label: lang_diversity_dataset
+
+language_diversity |>
+  pivot_wider(
+    names_from = Measurement,
+    values_from = Value
+  ) |>
+  ggplot() + 
+  aes(x = log(Langs), y = log(Area)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") 
+
+```
+
+
+```{r}
+#| label: tidy_csv
+
+# Make a CSV file from the wider dataset 
+language_diversity |>
+  pivot_wider(
+    names_from = Measurement,
+    values_from = Value
+  ) |>
+  write_csv("lang_tidy.csv")
+```
+
+
+```{r}
+#| label: read_csv
+
+lng_dv <- read_csv("lang_tidy.csv")
+
+```
